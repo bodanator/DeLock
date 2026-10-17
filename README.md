@@ -5,7 +5,7 @@ Decided to make my code public for a lockdown browser bypass window. The window 
 This program requires an active OpenAI API key to function. It is currently set up to use 6.1 Luna as this model contains the best vision to performance to price ratio. You can configure the model at will within the Config file inside the main window folder.
 
 # Feature List
-For the technically inclined I will provide a simple list of features the window has, as well as some of the bypasses I was able to implement during my time working on this. I may or may not some of the other details I discovered while working through lockdownbrowser binary. 
+For the technically inclined I will provide a simple list of features the window has, as well as some of the bypasses I was able to implement during my time working on this. I may or may not release of the other details I discovered while working through lockdownbrowser binary. 
 ### Zero-Focus Architecture
 The window never becomes the foreground or active window. Built with `WS_EX_NOACTIVATE` — no application on the system will detect a focus change when the overlay is toggled. Input is captured through a low-level keyboard hook (`WH_KEYBOARD_LL`) that intercepts keystrokes system-wide without requiring window focus.
 
