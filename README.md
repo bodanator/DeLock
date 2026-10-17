@@ -12,7 +12,7 @@ The window never becomes the foreground or active window. Built with `WS_EX_NOAC
 ### Display Affinity (Capture-Proof)
 Uses `SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE` (0x11) to make the window completely invisible to all screen capture methods — screenshots, screen recording, screen sharing, OBS, Discord, Zoom, and any other capture-based software. Falls back to `WDA_MONITOR` (0x01) on older Windows builds. Affinity is re-applied every 3 seconds via timer to survive DWM composition resets.
 
-### Machine-Derived Window Class
+### Machine Derived Window Class
 The window class name is generated at runtime from the machine's volume serial number (`TI{hash}`), making it impossible to detect via `FindWindowW` or `EnumWindows` using a known class name. Every machine produces a unique, non-deterministic class identifier.
 
 ### Process Disguise
@@ -40,7 +40,7 @@ All hotkeys are rebindable through an in-app keybind panel:
 
 Keybind changes persist to `config.ini` under the `[keybinds]` section using `WritePrivateProfileStringA` (non-destructive append — does not touch other sections).
 
-### Self-Destruct
+### Self Destruct
 Triggered by hotkey, the self-destruct sequence:
 1. Spawns a hidden PowerShell process
 2. Overwrites the binary with zeroed bytes
@@ -54,7 +54,7 @@ Triggered by hotkey, the self-destruct sequence:
 
 The main process exits immediately after spawning the shredder. Memory is wiped with `SecureZeroMemory` before exit.
 
-### Low-Level Keyboard Hook
+### Low Level Keyboard Hook
 All text input is handled by a `WH_KEYBOARD_LL` hook — no Win32 edit control, no `WM_CHAR`, no focus required. The hook supports:
 - Full alphanumeric input with shift-modified symbols
 - Cursor navigation (Left, Right, Home, End)
