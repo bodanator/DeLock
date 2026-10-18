@@ -6,10 +6,10 @@ This program requires an active OpenAI API key to function. It is currently set 
 
 # Feature List
 For the technically inclined I will provide a simple list of features the window has, as well as some of the bypasses I was able to implement during my time working on this. I may or may not release of the other details I discovered while working through lockdownbrowser binary. 
-### Zero-Focus Architecture
+### Zero Focus Architecture
 The window never becomes the foreground or active window. Built with `WS_EX_NOACTIVATE` — no application on the system will detect a focus change when the overlay is toggled. Input is captured through a low-level keyboard hook (`WH_KEYBOARD_LL`) that intercepts keystrokes system-wide without requiring window focus.
 
-### Display Affinity (Capture-Proof)
+### Display Affinity
 Uses `SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE` (0x11) to make the window completely invisible to all screen capture methods — screenshots, screen recording, screen sharing, OBS, Discord, Zoom, and any other capture-based software. Falls back to `WDA_MONITOR` (0x01) on older Windows builds. Affinity is re-applied every 3 seconds via timer to survive DWM composition resets.
 
 ### Machine Derived Window Class
@@ -18,7 +18,7 @@ The window class name is generated at runtime from the machine's volume serial n
 ### Process Disguise
 The output binary is named `TextInputHost.exe`, matching a legitimate Windows system process. This avoids detection by process enumeration scanners that compare running process names against a blocklist.
 
-### Screen Scan (Vision API)
+### Vision API
 Captures the entire screen as a compressed JPEG, base64-encodes it, and sends it to the OpenAI vision API. The overlay hides itself before capture and restores after. Useful for analyzing on-screen content — the AI sees exactly what you see.
 
 ### OpenAI API Integration
@@ -54,7 +54,7 @@ Triggered by hotkey, the self-destruct sequence:
 
 The main process exits immediately after spawning the shredder. Memory is wiped with `SecureZeroMemory` before exit.
 
-### Low Level Keyboard Hook
+### Keyboard Hook
 All text input is handled by a `WH_KEYBOARD_LL` hook — no Win32 edit control, no `WM_CHAR`, no focus required. The hook supports:
 - Full alphanumeric input with shift-modified symbols
 - Cursor navigation (Left, Right, Home, End)
