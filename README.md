@@ -19,7 +19,7 @@ The window class name is generated at runtime from the machine's volume serial n
 The output binary is named `TextInputHost.exe`, matching a legitimate Windows system process. This avoids detection by process enumeration scanners that compare running process names against a blocklist.
 
 ### Vision API
-Captures the entire screen as a compressed JPEG, base64-encodes it, and sends it to the OpenAI vision API. The overlay hides itself before capture and restores after. Useful for analyzing on-screen content — the AI sees exactly what you see.
+Captures the entire screen as a compressed JPEG, base64-encodes it, and sends it to the OpenAI vision API. The overlay hides itself before capture and restores after. Useful for analyzing on screen content.
 
 ### OpenAI API Integration
 - Full conversation history with rolling 20-message context window
