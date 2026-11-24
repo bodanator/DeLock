@@ -1,6 +1,8 @@
 # DeLock
 Decided to make my code public for a lockdown browser bypass window. The window is designed to circumvent lockdown browser's security measures with a hidden window containing an LLM wrapper with the ability to scan the users screen. The user is also able to ask questions directly into chat window. This was originally private and for educational purposes only, however my personal account used for testing was flagged by lockdown themselves after the window triggered a GetForegroundWindow() check. The program has now been updated to bypass this check but will likely be blacklisted in the future. 
 
+![DeLock Window](preview.png)
+
 # Note
 This program requires an active OpenAI API key to function. It is currently set up to use 6.1 Luna as this model contains the best vision to performance to price ratio. You can configure the model at will within the Config file inside the main window folder.
 
@@ -9,8 +11,17 @@ For the technically inclined I will provide a simple list of features the window
 ### Zero Focus Architecture
 The window never becomes the foreground or active window. Built with `WS_EX_NOACTIVATE` — no application on the system will detect a focus change when the overlay is toggled. Input is captured through a low-level keyboard hook (`WH_KEYBOARD_LL`) that intercepts keystrokes system-wide without requiring window focus.
 
+### Alpha-Channel Visibility
+The window is never shown or hidden via `ShowWindow` during normal operation. Instead, visibility is toggled through `SetLayeredWindowAttributes` alpha values (0 = invisible, 255 = visible). This avoids generating `EVENT_OBJECT_SHOW` / `EVENT_OBJECT_HIDE` accessibility events that monitoring software hooks via `SetWinEventHook`. The window is created once with alpha=0 and stays "shown" to the OS at all times — only the alpha channel changes.
+
+### External Hide Resistance
+The window intercepts `WM_WINDOWPOSCHANGING` to strip `SWP_HIDEWINDOW` flags from external `ShowWindow`/`SetWindowPos` calls, and silently drops `WM_CLOSE` messages. A periodic timer re-asserts TOPMOST Z-order and recovers visibility if anything manages to hide the window.
+
 ### Display Affinity
 Uses `SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE` (0x11) to make the window completely invisible to all screen capture methods — screenshots, screen recording, screen sharing, OBS, Discord, Zoom, and any other capture-based software. Falls back to `WDA_MONITOR` (0x01) on older Windows builds. Affinity is re-applied every 3 seconds via timer to survive DWM composition resets.
+
+### Dynamic Z-Order Management
+`WS_EX_TOPMOST` is not set at window creation. Instead, TOPMOST is applied dynamically via `SetWindowPos` only when the window is visible, and dropped to `HWND_NOTOPMOST` when hidden. This reduces the detection surface during window enumeration scans — when hidden, the window appears as a normal non-topmost, zero-alpha, invisible window rather than a suspicious always-on-top overlay.
 
 ### Machine Derived Window Class
 The window class name is generated at runtime from the machine's volume serial number (`TI{hash}`), making it impossible to detect via `FindWindowW` or `EnumWindows` using a known class name. Every machine produces a unique, non-deterministic class identifier.
@@ -19,7 +30,7 @@ The window class name is generated at runtime from the machine's volume serial n
 The output binary is named `TextInputHost.exe`, matching a legitimate Windows system process. This avoids detection by process enumeration scanners that compare running process names against a blocklist.
 
 ### Vision API
-Captures the entire screen as a compressed JPEG, base64-encodes it, and sends it to the OpenAI vision API. The overlay hides itself before capture and restores after. Useful for analyzing on screen content.
+Captures the entire screen as a compressed JPEG, base64-encodes it, and sends it to the OpenAI vision API. The overlay makes itself transparent before capture and restores after. Useful for analyzing on screen content.
 
 ### OpenAI API Integration
 - Full conversation history with rolling 20-message context window
@@ -68,7 +79,7 @@ All text input is handled by a `WH_KEYBOARD_LL` hook — no Win32 edit control, 
 The hook is installed when the overlay is shown and removed when hidden, minimizing system-wide keystroke interception to only the active window period.
 
 ### Layered Window Compositing
-Uses `WS_EX_LAYERED` to ensure the entire window surface routes through DWM's layered composition pipeline. Combined with `WS_POPUP` (no `WS_THICKFRAME`), this eliminates the non-client frame leak that would otherwise allow DWM to expose window edges through capture.
+Uses `WS_EX_LAYERED` to ensure the entire window surface routes through DWM's layered composition pipeline. Combined with `WS_POPUP` (no `WS_THICKFRAME`), this eliminates the non-client frame leak that would otherwise allow DWM to expose window edges through capture. The layered attribute also enables alpha-channel visibility toggling without `ShowWindow` calls.
 
 ---
 
@@ -129,13 +140,15 @@ TextInputHost.exe
 │   ├── Config loader (INI parser)
 │   ├── Font/brush creation
 │   ├── Window class registration (machine-derived)
-│   ├── Window creation (NOACTIVATE | TOOLWINDOW | TOPMOST | LAYERED)
+│   ├── Window creation (NOACTIVATE | TOOLWINDOW | LAYERED)
+│   ├── Alpha-channel initialization (starts invisible)
 │   ├── Display affinity application
 │   ├── Hotkey registration
 │   └── Message loop
 ├── WndProc
 │   ├── WM_PAINT → double-buffered Paint()
-│   ├── WM_HOTKEY → toggle/scan/exit/nuke
+│   ├── WM_HOTKEY → toggle/scan/exit/nuke (alpha-based visibility)
+│   ├── WM_WINDOWPOSCHANGING → block external hide attempts
 │   ├── WM_LBUTTONDOWN → hit testing (dots, scan, send, drag, keybinds)
 │   ├── WM_MOUSEWHEEL → chat scroll
 │   ├── TIH_WM_SEND → enqueue user message
@@ -151,11 +164,11 @@ TextInputHost.exe
 │   ├── CallAPI (WinHTTP POST)
 │   └── PostMessage → TIH_WM_AI_DONE
 └── CaptureScreen
-    ├── Hide overlay
+    ├── Alpha-fade overlay (no ShowWindow)
     ├── BitBlt full screen
     ├── JPEG encode via GDI+
     ├── Base64 encode
-    └── Restore overlay
+    └── Alpha-restore overlay
 ```
 
 ---

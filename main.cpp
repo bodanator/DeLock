@@ -252,6 +252,20 @@ static void UnregisterAllHotkeys() {
         UnregisterHotKey(g_hWnd, g_binds[i].id);
 }
 
+static void MakeVisible() {
+    SetLayeredWindowAttributes(g_hWnd, 0, 255, LWA_ALPHA);
+    SetWindowPos(g_hWnd, HWND_TOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    g_vis = true;
+}
+
+static void MakeInvisible() {
+    SetLayeredWindowAttributes(g_hWnd, 0, 0, LWA_ALPHA);
+    SetWindowPos(g_hWnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    g_vis = false;
+}
+
 typedef BOOL(WINAPI* pfnSWDA)(HWND, DWORD);
 typedef BOOL(WINAPI* pfnGWDA)(HWND, DWORD*);
 static pfnSWDA pSetWDA = nullptr;
@@ -399,7 +413,7 @@ static bool GetJpegClsid(CLSID* pClsid) {
 
 static std::string CaptureScreen() {
     bool was = g_vis;
-    if (was) { ShowWindow(g_hWnd, SW_HIDE); Sleep(60); }
+    if (was) { SetLayeredWindowAttributes(g_hWnd, 0, 0, LWA_ALPHA); Sleep(60); }
 
     int w = GetSystemMetrics(SM_CXSCREEN);
     int h = GetSystemMetrics(SM_CYSCREEN);
@@ -409,7 +423,7 @@ static std::string CaptureScreen() {
     SelectObject(hMem, hBmp);
     BitBlt(hMem, 0, 0, w, h, hScr, 0, 0, SRCCOPY);
 
-    if (was) ShowWindow(g_hWnd, SW_SHOWNOACTIVATE);
+    if (was) SetLayeredWindowAttributes(g_hWnd, 0, 255, LWA_ALPHA);
 
     Gdiplus::Bitmap bmp(hBmp, NULL);
     CLSID jClsid;
@@ -1052,8 +1066,15 @@ static LRESULT CALLBACK WndProc(HWND hw, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_TIMER:
         if (wp == 99 && g_thinking)
             InvalidateRect(hw, NULL, TRUE);
-        if (wp == 100)
+        if (wp == 100) {
             ApplyAffinity(hw);
+            if (g_vis) {
+                if (!IsWindowVisible(hw))
+                    ShowWindow(hw, SW_SHOWNOACTIVATE);
+                SetWindowPos(hw, HWND_TOPMOST, 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+        }
         if (wp == 101) {
             g_cursorOn = !g_cursorOn;
             if (g_vis) InvalidateRect(hw, NULL, TRUE);
@@ -1087,7 +1108,7 @@ static LRESULT CALLBACK WndProc(HWND hw, UINT msg, WPARAM wp, LPARAM lp) {
             int cy = TITLE_H / 2;
             int dx = x - cx, dy = y - cy;
             if (dx * dx + dy * dy <= dotHitR * dotHitR) {
-                if (i >= 1) { g_vis = false; ShowWindow(hw, SW_HIDE); }
+                if (i >= 1) { MakeInvisible(); RemoveKeyHook(); }
                 return 0;
             }
         }
@@ -1188,19 +1209,17 @@ static LRESULT CALLBACK WndProc(HWND hw, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_HOTKEY:
         if (wp == TIH_HOTKEY_ID) {
-            g_vis = !g_vis;
-            if (g_vis) {
-                ShowWindow(hw, SW_SHOWNOACTIVATE);
+            if (!g_vis) {
+                MakeVisible();
                 InstallKeyHook();
             } else {
-                ShowWindow(hw, SW_HIDE);
+                MakeInvisible();
                 RemoveKeyHook();
             }
         }
         if (wp == TIH_SCAN_ID) {
             if (!g_vis) {
-                g_vis = true;
-                ShowWindow(hw, SW_SHOWNOACTIVATE);
+                MakeVisible();
                 InstallKeyHook();
             }
             if (!g_thinking) DoScan();
@@ -1274,6 +1293,16 @@ static LRESULT CALLBACK WndProc(HWND hw, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_ERASEBKGND:
         return 1;
 
+    case WM_WINDOWPOSCHANGING: {
+        WINDOWPOS* pos = (WINDOWPOS*)lp;
+        if (pos->flags & SWP_HIDEWINDOW)
+            pos->flags &= ~SWP_HIDEWINDOW;
+        return 0;
+    }
+
+    case WM_CLOSE:
+        return 0;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
@@ -1315,24 +1344,21 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     int sy = GetSystemMetrics(SM_CYSCREEN);
 
     g_hWnd = CreateWindowExA(
-        WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE,
         cls.c_str(), "",
         WS_POPUP,
         sx - PW - 20, (sy - PH) / 2,
         PW, PH,
         NULL, NULL, hInst, NULL);
 
-    SetLayeredWindowAttributes(g_hWnd, 0, 255, LWA_ALPHA);
-
+    SetLayeredWindowAttributes(g_hWnd, 0, 0, LWA_ALPHA);
     ShowWindow(g_hWnd, SW_SHOWNOACTIVATE);
     ApplyAffinity(g_hWnd);
-    ShowWindow(g_hWnd, SW_HIDE);
 
     SetTimer(g_hWnd, 100, 3000, NULL);
 
     RegisterAllHotkeys();
 
-    ShowWindow(g_hWnd, SW_HIDE);
     g_vis = false;
 
     MSG msg;
