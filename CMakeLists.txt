@@ -24,3 +24,9 @@ set_target_properties(TextInputHost PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     OUTPUT_NAME "TextInputHost"
 )
+
+add_custom_command(TARGET TextInputHost POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/config.ini"
+        "$<TARGET_FILE_DIR:TextInputHost>/config.ini"
+)

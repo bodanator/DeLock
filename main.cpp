@@ -223,7 +223,7 @@ static bool              g_vis        = false;
 static int               g_scrollY    = 0;
 static int               g_contentH   = 0;
 static std::string       g_apiKey;
-static std::string       g_model      = "sol-6.1";
+static std::string       g_model      = "gpt-4o";
 static std::string       g_pendReply;
 static bool              g_thinking   = false;
 static std::vector<Msg>  g_msgs;
@@ -305,7 +305,7 @@ static void LoadCfg() {
     GetPrivateProfileStringA("api", "key", "", v, sizeof(v), ini.c_str());
     if (v[0]) g_apiKey = v;
 
-    GetPrivateProfileStringA("api", "model", "sol-6.1", v, sizeof(v), ini.c_str());
+    GetPrivateProfileStringA("api", "model", "gpt-4o", v, sizeof(v), ini.c_str());
     if (v[0]) g_model = v;
 
     if (g_apiKey.empty()) {

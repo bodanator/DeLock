@@ -4,7 +4,7 @@ Decided to make my code public for a lockdown browser bypass window. The window 
 ![DeLock Window](preview.png)
 
 # Note
-This program requires an active OpenAI API key to function. It is currently set up to use 6.1 Luna as this model contains the best vision to performance to price ratio. You can configure the model at will within the Config file inside the main window folder.
+This program requires an active OpenAI API key to function. It defaults to gpt-4o which has a good balance of vision quality and cost. You can swap the model in `config.ini` next to the binary.
 
 # Feature List
 For the technically inclined I will provide a simple list of features the window has, as well as some of the bypasses I was able to implement during my time working on this. I may or may not release of the other details I discovered while working through lockdownbrowser binary. 
@@ -92,13 +92,12 @@ Uses `WS_EX_LAYERED` to ensure the entire window surface routes through DWM's la
 
 ### Steps
 ```
-cd ghost
 mkdir build && cd build
 cmake .. -G "Visual Studio 17 2022" -A x64
 cmake --build . --config Release
 ```
 
-The binary lands at `build/Release/TextInputHost.exe`.
+The binary and `config.ini` land in `build/bin/`.
 
 ### Linked Libraries
 - `gdiplus` — JPEG encoding for screen capture
